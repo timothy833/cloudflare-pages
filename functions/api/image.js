@@ -11,26 +11,22 @@ export async function onRequest(context) {
         });
     }
 
-    const workerUrl = `https://wordscape-sound-401c.ca9m8e5zy.workers.dev?key=${encodeURIComponent(key)}`;
-    console.log("🔄 Cloudflare Pages 代理請求到 Workers:", workerUrl);
-
-    let response = await fetch(workerUrl);
-
-    if (!response.ok) {
-        console.log("❌ Cloudflare Pages API：Workers 回應錯誤");
-        return new Response(JSON.stringify({ error: "無法獲取圖片" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
+    if (request.method === "POST") {
+        console.log("🔄 Cloudflare Pages 收到新的圖片，存取快取");
+    
+        // ✅ 設定 Cloudflare Edge Cache
+        return new Response(request.body, {
+            headers: {
+            "Content-Type": request.headers.get("Content-Type"),
+            "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+            },
         });
     }
 
-    // ✅ 設定 Cloudflare Edge Cache
-    response = new Response(response.body, {
-        headers: {
-        "Content-Type": response.headers.get("Content-Type"),
-        "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
-        },
-    });
+    console.log("🔍 Cloudflare Pages 嘗試回應快取圖片");
+
+    const workerUrl = `https://wordscape-sound-401c.ca9m8e5zy.workers.dev?key=${encodeURIComponent(key)}`;
+    let response = await fetch(workerUrl);
 
     console.log("✅ Cloudflare Pages API 成功回應圖片，Cloudflare Edge Cache 啟動！");
     return response;

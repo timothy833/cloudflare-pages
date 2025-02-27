@@ -1,7 +1,7 @@
 export async function onRequest(context) {
     const { request } = context;
     const url = new URL(request.url);
-    const key = url.searchParams.get("key");
+    const key = decodeURIComponent(url.searchParams.get("key"));
 
     if (!key) {
         console.log("❌ Cloudflare Pages API：缺少圖片 key");
@@ -26,7 +26,7 @@ export async function onRequest(context) {
 
     console.log("🔍 Cloudflare Pages 嘗試回應快取圖片");
 
-    const workerUrl = `https://wordscape-sound-401c.ca9m8e5zy.workers.dev?key=${key}`;
+    const workerUrl = `https://wordscape-sound-401c.ca9m8e5zy.workers.dev?key=${encodeURIComponent(key)}`;
     let response = await fetch(workerUrl);
 
     console.log("✅ Cloudflare Pages API 成功回應圖片，Cloudflare Edge Cache 啟動！");

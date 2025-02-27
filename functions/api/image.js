@@ -19,13 +19,14 @@ export async function onRequest(context) {
             headers: {
             "Content-Type": request.headers.get("Content-Type"),
             "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+            "Access-Control-Allow-Origin": "*",
             },
         });
     }
 
     console.log("🔍 Cloudflare Pages 嘗試回應快取圖片");
 
-    const workerUrl = `https://wordscape-sound-401c.ca9m8e5zy.workers.dev?key=${encodeURIComponent(key)}`;
+    const workerUrl = `https://wordscape-sound-401c.ca9m8e5zy.workers.dev?key=${key}`;
     let response = await fetch(workerUrl);
 
     console.log("✅ Cloudflare Pages API 成功回應圖片，Cloudflare Edge Cache 啟動！");

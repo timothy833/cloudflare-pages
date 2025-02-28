@@ -1,7 +1,9 @@
 export async function onRequest(context) {
-    const { request } = context;
+    const { request, env  } = context;  // ✅ `env` 取代 `process.env`
     const url = new URL(request.url);
     const key = decodeURIComponent(url.searchParams.get("key"));  // ✅ 確保 `/` 解析正確
+
+    console.log("🔍 Cloudflare Pages API 收到請求，Key:", key);
 
     if (!key) {
         console.log("❌ Cloudflare Pages API：缺少圖片 key");
@@ -21,9 +23,19 @@ export async function onRequest(context) {
     }
 
     console.log("⚠️ Cloudflare Pages 無快取，請求 Render Server");
+
+
+    if (!env.CDN_BASE_URL) {
+        console.log("❌ 環境變數 CDN_BASE_URL 未設置！");
+        return new Response(JSON.stringify({ error: "CDN_BASE_URL 未設置" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+        });
+    }
+    
     
      // ✅ 2️⃣ 請求 Render Server 取得 `signedUrl`
-    const renderServerUrl = `${process.env.CDN_BASE_URL}/api/proxyImage?key=${encodeURIComponent(key)}`;
+    const renderServerUrl = `${env.CDN_BASE_URL}/api/proxyImage?key=${encodeURIComponent(key)}`;
     let renderResponse = await fetch(renderServerUrl);
 
     if (!renderResponse.ok) {

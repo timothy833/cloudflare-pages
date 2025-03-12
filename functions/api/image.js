@@ -13,6 +13,20 @@ export async function onRequest(context) {
         });
     }
 
+    // ✅ **防盜鏈設定**（正式上線時可啟用）
+    /*
+    const allowedOrigins = ["https://your-frontend.com", "https://your-other-site.com"];
+    const requestOrigin = request.headers.get("Referer") || request.headers.get("Origin");
+
+    if (!allowedOrigins.includes(requestOrigin)) {
+        console.log("❌ 未授權存取圖片，來源:", requestOrigin);
+        return new Response(JSON.stringify({ error: "未授權存取圖片" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+        });
+    }
+    */
+
     // ✅ 1️⃣ 先檢查 Cloudflare Pages 快取
     const cache = caches.default;
     let cachedResponse = await cache.match(request);
@@ -39,10 +53,17 @@ export async function onRequest(context) {
     let renderResponse = await fetch(renderServerUrl);
 
     if (!renderResponse.ok) {
-        console.log("❌ Render Server 無法提供 `signedUrl`");
-        return new Response(JSON.stringify({ error: "無法獲取圖片" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
+        console.log("❌ Render Server 無法提供 `signedUrl`，刪除 Cloudflare 快取");
+
+        // **刪除 Cloudflare Pages 快取**
+        await cache.delete(request);
+
+        return new Response(JSON.stringify({ error: "圖片不存在" }), {
+        status: 404,
+        headers: { 
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store",  // 防止 Cloudflare 快取 404
+         },
         });
     }
 

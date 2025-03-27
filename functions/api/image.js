@@ -3,10 +3,10 @@ export async function onRequest(context) {
     const url = new URL(request.url);
     const key = decodeURIComponent(url.searchParams.get("key"));  // ✅ 確保 `/` 解析正確
 
-    console.log("🔍 Cloudflare Pages API 收到請求，Key:", key);
+    // console.log("🔍 Cloudflare Pages API 收到請求，Key:", key);
 
     if (!key) {
-        console.log("❌ Cloudflare Pages API：缺少圖片 key");
+        // console.log("❌ Cloudflare Pages API：缺少圖片 key");
         return new Response(JSON.stringify({ error: "缺少圖片 key" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -32,16 +32,22 @@ export async function onRequest(context) {
     let cachedResponse = await cache.match(request);
 
     if (cachedResponse) {
-        cachedResponse.headers.set("X-Cache-Status", "HIT");
-        console.log("✅ 使用 Cloudflare Pages 快取的 `signedUrl`");
-        return cachedResponse;
+        const headers = new Headers(cachedResponse.headers);
+        headers.set("X-Cache-Status", "HIT");
+        // cachedResponse.headers.set("X-Cache-Status", "HIT");
+        // console.log("✅ 使用 Cloudflare Pages 快取的 `signedUrl`");
+        // return cachedResponse;
+        return new Response(cachedResponse.body, {
+            status: cachedResponse.status,
+            headers,
+        });
     }
 
-    console.log("⚠️ Cloudflare Pages 無快取，請求 Render Server");
+    // console.log("⚠️ Cloudflare Pages 無快取，請求 Render Server");
 
     // ✅ 取得 signed URL from Render Server
     if (!env.CDN_BASE_URL) {
-        console.log("❌ 環境變數 CDN_BASE_URL 未設置！");
+        // console.log("❌ 環境變數 CDN_BASE_URL 未設置！");
         return new Response(JSON.stringify({ error: "CDN_BASE_URL 未設置" }), {
             status: 500,
             headers: { "Content-Type": "application/json" },
@@ -54,7 +60,7 @@ export async function onRequest(context) {
     let renderResponse = await fetch(renderServerUrl);
 
     if (!renderResponse.ok) {
-        console.log("❌ Render Server 無法提供 `signedUrl`，刪除 Cloudflare 快取");
+        // console.log("❌ Render Server 無法提供 `signedUrl`，刪除 Cloudflare 快取");
 
         // **刪除 Cloudflare Pages 快取**
         await cache.delete(request);
@@ -80,7 +86,7 @@ export async function onRequest(context) {
     //     },
     // });
 
-     // ✅ 代理取得圖片實體內容（binary）
+     // ✅ 抓取圖片實體內容（binary）
     const imageResponse = await fetch(signedUrl);
     if (!imageResponse.ok) {
         return new Response("R2 image not found", { status: 404 });

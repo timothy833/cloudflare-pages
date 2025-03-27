@@ -71,19 +71,37 @@ export async function onRequest(context) {
     console.log("✅ 取得 R2 簽名 URL:", signedUrl);
 
     // ✅ 3️⃣ 讓 Cloudflare Pages 記住這個 `signedUrl`
-    let response = new Response(null, {
-        status: 302,
+    // let response = new Response(null, {
+    //     status: 302,
+    //     headers: {
+    //       "Location": signedUrl,
+    //       "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+    //     },
+    // });
+
+     // ✅ 代理取得圖片實體內容（binary）
+    const imageResponse = await fetch(signedUrl);
+    if (!imageResponse.ok) {
+        return new Response("R2 image not found", { status: 404 });
+    }
+
+    // ✅ 將圖片內容以正確格式回傳（並快取這個 Response）
+    const response = new Response(imageResponse.body, {
+        status: 200,
         headers: {
-          "Location": signedUrl,
-          "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+        "Content-Type": imageResponse.headers.get("Content-Type") || "image/jpeg",
+        "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
         },
     });
 
     // **存入 Cloudflare Pages Edge Cache**
-    cache.put(request, response.clone());
-
-    console.log("✅ Cloudflare Pages 快取已更新，回應 302 Redirect");
+    await cache.put(request, response.clone());
+    console.log("✅ 已快取圖片內容（非 redirect）");
 
     return response;
+
+
+  // console.log("✅ Cloudflare Pages 快取已更新，回應 302 Redirect");
+
 }
   

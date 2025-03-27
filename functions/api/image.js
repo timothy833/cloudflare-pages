@@ -32,13 +32,14 @@ export async function onRequest(context) {
     let cachedResponse = await cache.match(request);
 
     if (cachedResponse) {
+        cachedResponse.headers.set("X-Cache-Status", "HIT");
         console.log("✅ 使用 Cloudflare Pages 快取的 `signedUrl`");
         return cachedResponse;
     }
 
     console.log("⚠️ Cloudflare Pages 無快取，請求 Render Server");
 
-
+    // ✅ 取得 signed URL from Render Server
     if (!env.CDN_BASE_URL) {
         console.log("❌ 環境變數 CDN_BASE_URL 未設置！");
         return new Response(JSON.stringify({ error: "CDN_BASE_URL 未設置" }), {
@@ -68,7 +69,7 @@ export async function onRequest(context) {
     }
 
     let { signedUrl } = await renderResponse.json();
-    console.log("✅ 取得 R2 簽名 URL:", signedUrl);
+    console.log("✅ 取得 R2 簽名 URL");
 
     // ✅ 3️⃣ 讓 Cloudflare Pages 記住這個 `signedUrl`
     // let response = new Response(null, {
@@ -91,12 +92,13 @@ export async function onRequest(context) {
         headers: {
         "Content-Type": imageResponse.headers.get("Content-Type") || "image/jpeg",
         "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+        "X-Cache-Status": "MISS",
         },
     });
 
     // **存入 Cloudflare Pages Edge Cache**
     await cache.put(request, response.clone());
-    console.log("✅ 已快取圖片內容（非 redirect）");
+    console.log("✅ 已快取圖片內容");
 
     return response;
 
